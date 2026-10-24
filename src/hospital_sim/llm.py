@@ -23,6 +23,9 @@ log = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "qwen2.5:3b"
 DEFAULT_HOST = "http://localhost:11434"
+# The schema forces the model to pick one of the allowed values. Without an explicit
+# "I don't know" value it would guess a real location (e.g. ward_1 for "ward 12").
+UNKNOWN = "unknown"
 
 SYSTEM_PROMPT = """\
 You turn delivery requests for hospital robots into JSON.
@@ -35,9 +38,13 @@ oddelenie N = ward_N.
 Fields:
 - pickup: where the robot collects the item (one allowed location)
 - dropoff: where the robot delivers it (one allowed location)
-- item: what is delivered, a few words in the user's language
+- item: the words naming what is delivered, copied from the request in its
+  original language; do not translate them
 - priority: "urgent" if the request says urgent, ASAP, emergency, súrne, urgentne
   or similar, otherwise "normal"
+
+If the request names a place that is not an allowed location, or it is not a
+delivery request at all, set pickup and dropoff to "unknown". Never guess.
 
 Answer with the JSON object only."""
 
@@ -67,12 +74,14 @@ def check_locations(request: TaskRequest, locations: list[str]) -> TaskRequest |
 
 
 def json_schema(locations: list[str]) -> dict[str, Any]:
-    """JSON schema for structured output: the model can only pick allowed locations."""
+    """JSON schema for structured output: the model can only pick allowed locations,
+    or "unknown" when the request does not match any of them."""
+    places = [*locations, UNKNOWN]
     return {
         "type": "object",
         "properties": {
-            "pickup": {"type": "string", "enum": locations},
-            "dropoff": {"type": "string", "enum": locations},
+            "pickup": {"type": "string", "enum": places},
+            "dropoff": {"type": "string", "enum": places},
             "item": {"type": "string"},
             "priority": {"type": "string", "enum": [p.value for p in Priority]},
         },
@@ -114,5 +123,8 @@ class OllamaExtractor:
             return None
         except ValidationError as error:
             log.warning("LLM returned invalid output: %s", error.errors()[0]["msg"])
+            return None
+        if UNKNOWN in (request.pickup, request.dropoff):
+            log.info("LLM did not recognise a delivery between known locations")
             return None
         return check_locations(request, locations)
