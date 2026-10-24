@@ -1,0 +1,37 @@
+# Six robots, many overlapping orders and several urgent ones: a stress test for
+# collision avoidance (narrow doors, shared docks, head-on traffic in corridors).
+name: rush_hour
+map: ../maps/hospital.txt
+robots: 6
+max_ticks: 1500
+tasks:
+  - {tick: 0, pickup: pharmacy, dropoff: ward_1, item: insulin}
+  - {tick: 0, pickup: pharmacy, dropoff: ward_9, item: antibiotics}
+  - {tick: 0, pickup: kitchen, dropoff: ward_2, item: breakfast trays}
+  - {tick: 0, pickup: kitchen, dropoff: ward_8, item: breakfast trays}
+  - {tick: 0, pickup: lab, dropoff: ward_5, item: test kits}
+  - {tick: 0, pickup: ward_6, dropoff: lab, item: blood samples}
+  - {tick: 3, pickup: ward_4, dropoff: lab, item: blood samples, priority: urgent}
+  - {tick: 5, pickup: pharmacy, dropoff: ward_7, item: morphine, priority: urgent}
+  - {tick: 8, pickup: kitchen, dropoff: ward_3, item: breakfast trays}
+  - {tick: 10, pickup: ward_1, dropoff: kitchen, item: dirty trays}
+  - {tick: 12, pickup: lab, dropoff: ward_6, item: test results}
+  - {tick: 15, pickup: pharmacy, dropoff: ward_4, item: heparin}
+  - {tick: 18, pickup: ward_9, dropoff: pharmacy, item: unused medication}
+  - {tick: 20, pickup: kitchen, dropoff: ward_5, item: lunch trays}
+  - {tick: 22, pickup: ward_2, dropoff: lab, item: urine samples, priority: urgent}
+  - {tick: 25, pickup: pharmacy, dropoff: ward_3, item: paracetamol}
+  - {tick: 28, pickup: ward_7, dropoff: kitchen, item: dirty trays}
+  - {tick: 30, pickup: lab, dropoff: ward_8, item: test kits}
+  - {tick: 32, pickup: pharmacy, dropoff: ward_2, item: insulin, priority: urgent}
+  - {tick: 35, pickup: ward_5, dropoff: lab, item: blood samples}
+  - {tick: 38, pickup: kitchen, dropoff: ward_6, item: lunch trays}
+  - {tick: 40, pickup: ward_3, dropoff: pharmacy, item: unused medication}
+  - {tick: 42, pickup: pharmacy, dropoff: ward_9, item: saline}
+  - {tick: 45, pickup: ward_8, dropoff: kitchen, item: dirty trays}
+  - {tick: 48, pickup: lab, dropoff: ward_1, item: test results}
+  - {tick: 50, pickup: pharmacy, dropoff: ward_5, item: antibiotics, priority: urgent}
+  - {tick: 55, pickup: kitchen, dropoff: ward_4, item: lunch trays}
+  - {tick: 60, pickup: ward_6, dropoff: lab, item: blood samples}
+  - {tick: 65, pickup: pharmacy, dropoff: ward_7, item: insulin}
+  - {tick: 70, pickup: ward_9, dropoff: lab, item: swabs}
