@@ -11,6 +11,7 @@ Collision avoidance has two layers:
 """
 
 import logging
+from collections import deque
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -28,7 +29,8 @@ log = logging.getLogger(__name__)
 class SimConfig:
     load_ticks: int = 3
     unload_ticks: int = 3
-    stuck_timeout: int = 12  # ticks without a usable plan before a robot retreats
+    stuck_timeout: int = 12  # ticks without a usable plan before a robot retreats home
+    dock_timeout: int = 3  # the same, but for a robot blocking a dock: it steps aside sooner
     plan_horizon: int = 150  # how far into the future cooperative A* may plan
 
 
@@ -184,8 +186,8 @@ class Simulation:
                             robot.id,
                             delivered.delivery_time,
                         )
-            elif robot.retreating and not robot.path and robot.pos == robot.home:
-                robot.retreating = False  # back at the charger, try the real goal again
+            elif robot.detour is not None and not robot.path and robot.pos == robot.detour:
+                robot.detour = None  # out of the way now, try the real goal again
                 robot.needs_plan = True
             elif (
                 robot.is_driving
@@ -214,28 +216,67 @@ class Simulation:
         return True
 
     def _check_stuck(self, robot: Robot, now: int) -> None:
-        """Deadlock handling: timeout, then retreat to the home charger and replan.
+        """Deadlock handling: timeout, then get out of the way and replan.
 
-        Only ticks without a usable plan count (planned waits are fine). Retreating
-        frees the cell the robot is blocking, which breaks e.g. two robots waiting
-        for each other's dock.
+        Only ticks without a usable plan count (planned waits are fine).
+          * A robot standing on a dock steps aside to the nearest free side cell
+            after `dock_timeout` ticks, so the dock is free for others. Typical
+            case: it has just delivered and waits for a free dock at its next pickup.
+          * A robot stuck in a doorway or one-lane passage retreats to its home
+            charger after `stuck_timeout`.
+          * A robot on any other cell blocks nobody, so it simply keeps waiting.
+        Giving way breaks e.g. two robots waiting for each other's dock.
         """
         if robot.is_driving and (robot.needs_plan or robot.id in self._stopped):
             robot.stuck_ticks += 1
         else:
             robot.stuck_ticks = 0
             return
-        if robot.stuck_ticks < self.config.stuck_timeout:
+        on_dock = robot.pos != robot.home and self.grid.location_at(robot.pos) is not None
+        if not on_dock and self._is_waiting_spot(robot.pos):
+            return
+        timeout = self.config.dock_timeout if on_dock else self.config.stuck_timeout
+        if robot.stuck_ticks < timeout:
             return
         robot.stuck_ticks = 0
         robot.needs_plan = True
-        if robot.task is not None and not robot.retreating and robot.pos != robot.home:
-            robot.retreating = True
-            robot.deadlock_recoveries += 1
-            log.warning("t=%d robot %d is stuck, retreating to its charger", now, robot.id)
+        if robot.task is None or robot.detour is not None:
+            return  # nothing to give way for, or already giving way: just keep replanning
+        side_cell = self._side_cell(robot, now) if on_dock else None
+        detour = side_cell or robot.home  # no free side cell nearby: go home instead
+        if detour == robot.pos:
+            return
+        robot.detour = detour
+        robot.deadlock_recoveries += 1
+        log.warning("t=%d robot %d is stuck, moving out of the way to %s", now, robot.id, detour)
+
+    def _side_cell(self, robot: Robot, now: int) -> Cell | None:
+        """Nearest free waiting spot (BFS) not booked by any other robot from now on."""
+        seen = {robot.pos}
+        queue = deque([robot.pos])
+        while queue:
+            cell = queue.popleft()
+            if self._is_waiting_spot(cell) and self.reservations.is_free_from(cell, now, robot.id):
+                return cell
+            for nxt in self.grid.neighbors(cell):
+                if nxt not in seen and nxt not in self.blocked:
+                    seen.add(nxt)
+                    queue.append(nxt)
+        return None
+
+    def _is_waiting_spot(self, cell: Cell) -> bool:
+        """A cell where a waiting robot blocks nobody: not a dock, not closed, and not
+        a doorway or one-lane passage."""
+        return (
+            self.grid.location_at(cell) is None
+            and cell not in self.blocked
+            and not self.grid.blocks_passage(cell)
+        )
 
     def _choose_goal(self, robot: Robot) -> Cell | None:
-        if robot.retreating or robot.state == RobotState.RETURNING:
+        if robot.detour is not None:
+            return robot.detour
+        if robot.state == RobotState.RETURNING:
             return robot.home
         if robot.task is None:
             return None

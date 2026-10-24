@@ -70,6 +70,28 @@ class Grid:
                 return name
         return None
 
+    def blocks_passage(self, cell: Cell) -> bool:
+        """Would a robot standing on this cell cut a doorway or a one-lane passage?
+
+        Local check: the cell's free neighbours must still be able to reach each
+        other inside the surrounding 3x3 block without using the cell itself
+        (a small BFS). True in doorways and narrow corridors, False in rooms and
+        in the two-lane corridor.
+        """
+        x, y = cell
+        around = self.neighbors(cell)
+        if not around:
+            return False
+        block = {(x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)} - {cell}
+        seen = {around[0]}
+        queue = deque([around[0]])
+        while queue:
+            for nxt in self.neighbors(queue.popleft()):
+                if nxt in block and nxt not in seen:
+                    seen.add(nxt)
+                    queue.append(nxt)
+        return not all(n in seen for n in around)
+
 
 def parse_grid(text: str) -> Grid:
     """Build a Grid from map text and validate it. Raises MapError on any problem."""

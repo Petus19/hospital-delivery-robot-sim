@@ -43,7 +43,7 @@ class Robot:
     path: list[Cell] = field(default_factory=list)
     service_left: int = 0  # ticks of loading/unloading still to go
     needs_plan: bool = False
-    retreating: bool = False  # deadlock recovery: temporarily driving home
+    detour: Cell | None = None  # deadlock recovery: temporary goal (side cell or home)
     stuck_ticks: int = 0
     # Metrics
     distance: int = 0
@@ -74,7 +74,7 @@ class Robot:
         task.assigned_tick = tick
         self.goal = None
         self.needs_plan = True
-        self.retreating = False
+        self.detour = None
 
     def go_home(self) -> None:
         self._set_state(S.RETURNING)
