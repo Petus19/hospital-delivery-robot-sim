@@ -23,8 +23,9 @@ log = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "qwen2.5:3b"
 DEFAULT_HOST = "http://localhost:11434"
-# The schema forces the model to pick one of the allowed values. Without an explicit
-# "I don't know" value it would guess a real location (e.g. ward_1 for "ward 12").
+# The schema forces the model to pick one of the allowed values, so it gets an explicit
+# "I don't know" value. A small model still guesses sometimes (e.g. ward_1 for
+# "ward 12"), which is why task_parser.parse_task double-checks every answer.
 UNKNOWN = "unknown"
 
 SYSTEM_PROMPT = """\
@@ -125,6 +126,6 @@ class OllamaExtractor:
             log.warning("LLM returned invalid output: %s", error.errors()[0]["msg"])
             return None
         if UNKNOWN in (request.pickup, request.dropoff):
-            log.info("LLM did not recognise a delivery between known locations")
+            log.info("LLM did not recognize a delivery between known locations")
             return None
         return check_locations(request, locations)

@@ -3,7 +3,7 @@
 The viewer only *reads* simulation state and calls `sim.step()`; it never changes
 robots or tasks directly. Delete this file and the simulator still works headless.
 
-Keys: SPACE pause | N single step | UP/DOWN speed | ESC quit
+Keys: SPACE pause | N single step | UP/DOWN speed | T type a task | ESC quit
 """
 
 from collections.abc import Callable
@@ -59,6 +59,7 @@ class Viewer:
         self.paused = False
         self.speed_index = 2
         self.typing: str | None = None  # text being typed, None when not typing
+        self.paused_before_typing = False  # restored when typing ends
         self.message = ""
         pygame.init()
         width = sim.grid.width * CELL + PANEL_WIDTH
@@ -109,6 +110,7 @@ class Viewer:
                     self.speed_index = max(self.speed_index - 1, 0)
                 elif event.key == pygame.K_t and self.on_text is not None:
                     self.typing = ""
+                    self.paused_before_typing = self.paused
                     self.paused = True
                     pygame.key.start_text_input()
             if event.type == pygame.TEXTINPUT and self.typing is not None:
@@ -124,11 +126,11 @@ class Viewer:
                 self.message = "Parsing..."
                 self._draw()
                 self.message = self.on_text(text)
-            self.paused = False
+            self.paused = self.paused_before_typing
         elif event.key == pygame.K_ESCAPE:
             self.typing = None
             pygame.key.stop_text_input()
-            self.paused = False
+            self.paused = self.paused_before_typing
         elif event.key == pygame.K_BACKSPACE:
             self.typing = self.typing[:-1]
 
@@ -165,7 +167,7 @@ class Viewer:
             color = LOCATION_COLORS.get(name, WARD_COLOR)
             for cell in cells:
                 pygame.draw.rect(self.screen, color, self._rect(cell).inflate(-2, -2))
-            # Label above the first dock cell.
+            # Name in the corner of the first dock cell.
             label = self.small.render(name.replace("_", " "), True, (30, 30, 30))
             x, y = cells[0]
             self.screen.blit(label, (x * CELL + 2, y * CELL + 2))

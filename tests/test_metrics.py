@@ -45,7 +45,13 @@ def test_export_writes_three_files(small_grid, tmp_path):
     assert data["tasks_delivered"] == 2
 
 
-def test_format_summary_mentions_every_robot(small_grid):
-    text = format_summary(finished_sim(small_grid))
-    assert "Delivered: 2/2" in text
-    assert "robot" in text
+def test_format_summary_has_a_row_per_robot(small_grid):
+    # Robot 1 waits in the dead end next to the lab, out of everyone's way.
+    robots = [Robot(id=0, pos=(3, 1), home=(3, 1)), Robot(id=1, pos=(3, 3), home=(3, 3))]
+    sim = Simulation(small_grid, robots, [Task(1, "pharmacy", "ward_2", "insulin")])
+    sim.run(200)
+    text = format_summary(sim)
+    assert "Delivered: 1/1" in text
+    rows = [line.split() for line in text.splitlines()[-2:]]  # one row per robot at the end
+    assert [row[0] for row in rows] == ["0", "1"]
+    assert [int(row[1]) for row in rows] == [r.distance for r in sim.robots]

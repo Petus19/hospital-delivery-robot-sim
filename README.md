@@ -49,7 +49,7 @@ and keeps the core logic deterministic and fully tested.
 - **Dynamic obstacles**: cells closed from tick X to tick Y; affected robots
   replan.
 - **Metrics and logging**: delivery and queue times, distance, waits, safety
-  stops, utilisation; exported to CSV and JSON, plus a log file and a console
+  stops, utilization; exported to CSV and JSON, plus a log file and a console
   summary.
 - **YAML scenarios** with a seeded random task generator: the same seed always
   gives the same run.
@@ -67,7 +67,7 @@ on Linux/macOS use `.venv/bin/python` instead of `.venv\Scripts\python.exe`.
 ```powershell
 git clone https://github.com/Petus19/hospital-delivery-robot-sim.git
 cd hospital-delivery-robot-sim
-py -3.14 -m venv .venv                      # Linux/macOS: python3 -m venv .venv
+python -m venv .venv                        # or: py -m venv .venv (Windows), python3 -m venv .venv
 .venv\Scripts\python.exe -m pip install -e ".[dev]"
 
 .venv\Scripts\python.exe -m hospital_sim run scenarios/demo.yaml              # window
@@ -120,7 +120,7 @@ Every run prints a summary and writes `tasks.csv`, `robots.csv`,
 | `T` | Type a new task as a sentence, `Enter` to send |
 | `ESC` | Quit, then print and save the results |
 
-Robot colours show their state (blue: to pickup, orange: loading, green: to
+Robot colors show their state (blue: to pickup, orange: loading, green: to
 dropoff, purple: returning, grey: idle); a red ring marks an urgent task and
 the line is the planned path.
 
@@ -206,7 +206,7 @@ flowchart LR
 
 | Module | Responsibility |
 |---|---|
-| `grid.py` | Load and validate the ASCII map, neighbours, locations, passage detection |
+| `grid.py` | Load and validate the ASCII map, neighbors, locations, passage detection |
 | `pathfinding.py` | A* in space, cooperative A* in space and time |
 | `reservations.py` | Who is where and when: cells, moves and parking |
 | `robot.py` | Robot data and its state machine with legal transitions |
@@ -225,8 +225,8 @@ flowchart LR
 `steps so far + Manhattan distance to goal`. On a 4-connected grid the
 Manhattan distance never overestimates, so A\* returns a shortest path while
 exploring fewer cells than BFS. A test compares it with BFS on every dock of
-the map. Alternatives: Dijkstra (A\* without a heuristic), Jump Point Search
-(faster on open grids, harder to explain).
+the map. The alternative, Dijkstra's algorithm, is A\* without the heuristic and
+explores more cells.
 
 **Discrete time.** One tick = every robot moves at most one cell. Collisions
 are exactly defined, runs are deterministic, and tests can check invariants
@@ -247,7 +247,7 @@ exponentially with the number of conflicts, which is a poor fit for a fleet
 that receives new tasks all the time. Prioritized planning is fast and simple,
 but it is **incomplete** (it can miss a solution that exists), **not optimal**,
 and its result **depends on the planning order**. The deadlock handling below
-covers the practical cases; CBS/ECBS is the natural next step.
+covers the practical cases; CBS is the natural next step.
 
 **Two safety layers.** Planning should already avoid every conflict, but just
 before robots move a second check stops any robot that would enter an occupied
@@ -260,13 +260,13 @@ that two robots are never on one cell and never swap.
 (planned waits are fine). A robot blocking a dock steps aside to the nearest
 cell where it blocks nobody after 3 ticks; a robot stuck in a doorway or a
 one-lane passage retreats to its charger after 12 ticks. "Blocks nobody" is a
-local check: the neighbours of the cell must still reach each other in the
+local check: the neighbors of the cell must still reach each other in the
 surrounding 3×3 block without it.
 
 **Dispatcher.** Greedy: urgent before normal, then first come, first served;
 each task goes to the free robot with the shortest A\* path to the pickup.
-Greedy assignment is not globally optimal (the Hungarian algorithm would be),
-but it is predictable and cheap at this fleet size.
+Greedy assignment is not globally optimal (assigning all tasks at once could
+give shorter total travel), but it is predictable and cheap at this fleet size.
 
 **Determinism.** All randomness happens before the simulation starts: the seed
 turns into a fixed task list. The core has no clock and no random calls, and
@@ -304,8 +304,8 @@ Headless runs of the bundled scenarios (times in ticks, one tick = one move):
 | `random_day` (seed 42) | 5 | 43/43 | 65 | 62 / 66 | 9 | 0 | 681 |
 
 - Under load (`rush_hour`), urgent tasks are delivered almost twice as fast as
-  normal ones. In the small `demo` the two urgent tasks go to the farthest wards,
-  so their average is not lower.
+  normal ones. The small `demo` has only two urgent tasks, too few for their
+  average to say much.
 - No scenario needed the safety layer: every conflict was resolved by planning.
 - In `blocked_corridor` the robots detour through the lower corridor and return
   to the short route when the corridor reopens.
@@ -316,11 +316,11 @@ Natural-language input, 14 English and Slovak sentences (10 valid requests,
 | | Correct | Invalid requests turned into deliveries |
 |---|---|---|
 | LLM output trusted as is | 10/14 | 4 of 4 |
-| LLM + grounding check + rule-based fallback | **14/14** | 0 |
+| LLM + location check + rule-based fallback | **14/14** | 0 |
 
 ## Testing and quality
 
-- **97 tests** (pytest), no display and no Ollama needed: A\* against BFS,
+- **98 tests** (pytest), no display and no Ollama needed: A\* against BFS,
   map validation, state machine, dispatcher, reservation table, cooperative A\*,
   collision invariants after every tick in full scenarios, deadlock recovery,
   blockages, metrics, determinism with seeds, the parsers (with a fake LLM and
@@ -341,7 +341,9 @@ Natural-language input, 14 English and Slovak sentences (10 valid requests,
 Known limitations:
 
 - Prioritized planning is incomplete and not optimal; extreme congestion can
-  still need several give-way manoeuvres.
+  still need several give-way maneuvers.
+- An idle robot never moves out of the way, so chargers must be placed off the
+  corridors (as in the bundled map).
 - Robots learn about a closed corridor only when it closes; known schedules
   could be booked into the reservation table in advance.
 - Grid world: no continuous motion, kinematics, sensor noise or people.
@@ -351,10 +353,9 @@ Known limitations:
 
 Next steps:
 
-- **ROS 2 + Gazebo/Nav2**: run the same fleet logic against simulated robots
-  with real sensors; multi-robot traffic management in the style of Open-RMF.
-- **Continuous space**: costmaps and local planners instead of grid cells.
-- **CBS / ECBS** for optimal or bounded-suboptimal multi-robot paths.
+- **ROS 2 + Gazebo**: run the same fleet logic against simulated robots with
+  real sensors and continuous motion instead of grid cells.
+- **CBS** for optimal multi-robot paths.
 - **Battery model and charging** as part of dispatching.
 - **Reinforcement learning for dispatching**, compared with the greedy baseline
   using the existing metrics and seeded scenarios.
@@ -367,6 +368,7 @@ Next steps:
 ├── scenarios/*.yaml         ready-made scenarios
 ├── src/hospital_sim/        simulator package (see the module table above)
 ├── tests/                   pytest suite
+├── docs/demo.gif            recording used at the top of this README
 ├── pyproject.toml           dependencies, ruff, pyright, pytest settings
 └── .github/workflows/ci.yml continuous integration
 ```

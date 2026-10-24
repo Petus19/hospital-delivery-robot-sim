@@ -27,7 +27,7 @@ LOCATION_SYMBOLS: dict[str, str] = {
     **{str(n): f"ward_{n}" for n in range(1, 10)},
 }
 
-# Fixed neighbour order (up, right, down, left) keeps every search deterministic.
+# Fixed neighbor order (up, right, down, left) keeps every search deterministic.
 DIRECTIONS: tuple[Cell, ...] = ((0, -1), (1, 0), (0, 1), (-1, 0))
 
 
@@ -50,7 +50,7 @@ class Grid:
         return self.in_bounds(cell) and cell not in self.walls
 
     def neighbors(self, cell: Cell) -> list[Cell]:
-        """Free 4-connected neighbours of a cell."""
+        """Free 4-connected neighbors of a cell."""
         x, y = cell
         result = []
         for dx, dy in DIRECTIONS:
@@ -73,7 +73,7 @@ class Grid:
     def blocks_passage(self, cell: Cell) -> bool:
         """Would a robot standing on this cell cut a doorway or a one-lane passage?
 
-        Local check: the cell's free neighbours must still be able to reach each
+        Local check: the cell's free neighbors must still be able to reach each
         other inside the surrounding 3x3 block without using the cell itself
         (a small BFS). True in doorways and narrow corridors, False in rooms and
         in the two-lane corridor.

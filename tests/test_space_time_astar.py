@@ -24,7 +24,7 @@ def assert_no_conflicts(a, b):
 
 def assert_steps_valid(path):
     for x, y in zip(path, path[1:], strict=False):
-        assert manhattan(x, y) <= 1  # move to a neighbour or wait
+        assert manhattan(x, y) <= 1  # move to a neighbor or wait
 
 
 def test_without_other_robots_it_matches_astar(hospital_grid):

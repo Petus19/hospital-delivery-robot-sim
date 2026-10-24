@@ -136,8 +136,8 @@ class RuleBasedExtractor:
             w for idx, w in enumerate(words) if idx not in used and norm[idx] not in FILLER_WORDS
         ]
         item = " ".join(item_words)[:60] or "package"
-        return check_locations(TaskRequest(pickup=pickup, dropoff=dropoff, item=item,
-                                           priority=priority), locations)  # fmt: skip
+        request = TaskRequest(pickup=pickup, dropoff=dropoff, item=item, priority=priority)
+        return check_locations(request, locations)
 
 
 def _normalize(word: str) -> str:
