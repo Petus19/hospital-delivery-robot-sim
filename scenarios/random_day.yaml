@@ -1,0 +1,12 @@
+# A generated working shift: tasks appear at random but reproducibly.
+# Same seed = exactly the same tasks and the same result. Try `--seed 7` for another day.
+name: random_day
+map: ../maps/hospital.txt
+robots: 5
+seed: 42
+max_ticks: 900
+generator:
+  rate: 0.08          # on average a new task every ~12 ticks
+  until_tick: 600
+  urgent_share: 0.2
+  samples_share: 0.15
