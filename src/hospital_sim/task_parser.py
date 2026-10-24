@@ -42,8 +42,11 @@ NUMBER_WORDS = {
 NUMBER_PREFIX = {"c", "cislo", "no", "number", "nr"}  # "oddelenie č. 3", "ward no. 3"
 FROM_WORDS = {"from", "z", "zo", "od"}
 TO_WORDS = {"to", "into", "for", "na", "do", "pre", "k", "ku"}
-URGENT_STEMS = ("urgent", "asap", "stat", "emergenc", "immediate", "surn", "naliehav",
+URGENT_STEMS = ("urgent", "asap", "emergenc", "immediate", "surn", "naliehav",
                 "okamzit", "ihned", "hned", "ponahl", "rychl")  # fmt: skip
+# Whole words only: "stat" is medical shorthand for "immediately", but "status" or
+# "station" must not make a task urgent.
+URGENT_WORDS = {"stat"}
 FILLER_WORDS = {
     "deliver", "bring", "take", "send", "carry", "fetch", "move", "please", "the", "a",
     "an", "some", "it", "is", "need", "needs", "should", "go", "doruc", "dones", "prines",
@@ -127,7 +130,7 @@ class RuleBasedExtractor:
         # 3. Priority.
         priority = Priority.NORMAL
         for idx, word in enumerate(norm):
-            if word.startswith(URGENT_STEMS):
+            if word.startswith(URGENT_STEMS) or word in URGENT_WORDS:
                 priority = Priority.URGENT
                 used.add(idx)
 

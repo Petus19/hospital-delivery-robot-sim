@@ -108,3 +108,11 @@ def test_llm_answer_with_hospital_slang_is_accepted():
     answer = TaskRequest(pickup="pharmacy", dropoff="ward_3", item="inzulín")
     result = parse_task("inzulín z lekárne na trojku", LOCATIONS, FakeLLM(answer))
     assert result.source == "llm"
+
+
+def test_stat_counts_as_urgent_only_as_a_whole_word():
+    rules = RuleBasedExtractor()
+    stat = rules.extract("blood samples from ward 2 to the lab, stat", LOCATIONS)
+    status = rules.extract("bring the status report from the lab to ward 2", LOCATIONS)
+    assert stat is not None and stat.priority == Priority.URGENT
+    assert status is not None and status.priority == Priority.NORMAL
