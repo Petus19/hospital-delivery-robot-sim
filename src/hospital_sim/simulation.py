@@ -36,6 +36,7 @@ class Simulation:
         self.tick = 0
         self.tasks: list[Task] = []  # every task released so far
         self.queue: list[Task] = []  # released but not yet assigned
+        self.blocked: set[Cell] = set()  # cells closed right now (e.g. cleaning a corridor)
         self._scheduled = sorted(tasks, key=lambda t: (t.created_tick, t.id))
         self._next_task_id = max((t.id for t in self._scheduled), default=0) + 1
         self._validate()
