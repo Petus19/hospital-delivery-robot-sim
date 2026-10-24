@@ -1,0 +1,9 @@
+# One robot, three deliveries: the smallest scenario that exercises the full state machine.
+name: single_robot
+map: ../maps/hospital.txt
+robots: 1
+max_ticks: 300
+tasks:
+  - {tick: 0, pickup: pharmacy, dropoff: ward_3, item: insulin}
+  - {tick: 0, pickup: lab, dropoff: ward_6, item: blood test results}
+  - {tick: 5, pickup: pharmacy, dropoff: ward_1, item: morphine, priority: urgent}
