@@ -2,12 +2,16 @@
 
 `astar` is classic A* in space only (x, y). It ignores other robots and is used
 by the dispatcher to measure real travel distances.
+
+`space_time_astar` is the same algorithm in (x, y, time). It avoids the paths
+other robots have already booked in the reservation table.
 """
 
 import heapq
 from collections.abc import Collection
 
 from hospital_sim.grid import Cell, Grid
+from hospital_sim.reservations import ReservationTable
 
 
 def manhattan(a: Cell, b: Cell) -> int:
@@ -54,7 +58,61 @@ def path_length(grid: Grid, start: Cell, goal: Cell, blocked: Collection[Cell] =
     return None if path is None else len(path) - 1
 
 
-def _reconstruct(came_from: dict[Cell, Cell], cell: Cell) -> list[Cell]:
+def space_time_astar(
+    grid: Grid,
+    start: Cell,
+    goal: Cell,
+    start_tick: int,
+    reservations: ReservationTable,
+    robot_id: int,
+    blocked: Collection[Cell] = (),
+    max_steps: int = 200,
+) -> list[Cell] | None:
+    """Cooperative A*: plan in (x, y, time) around other robots' reservations.
+
+    Differences from plain `astar`:
+      * a search node is (cell, tick) instead of just cell, so the same cell can
+        be visited again later in time;
+      * "wait in place" is a legal move, next to up/right/down/left;
+      * a move is allowed only if the reservation table says so (no vertex and
+        no swap conflict);
+      * the goal counts only if the robot can stay there afterwards.
+
+    Returns cells for ticks start_tick, start_tick + 1, ... (repeated cell = wait),
+    or None if no plan exists within `max_steps` ticks.
+    """
+    # Cheap checks first, so hopeless searches don't explore the whole time horizon.
+    if reservations.parked_by_other(goal, robot_id):
+        return None
+    if astar(grid, start, goal, [c for c in blocked if c != start]) is None:
+        return None
+
+    State = tuple[Cell, int]  # (cell, steps since start_tick)
+    open_heap: list[tuple[int, int, Cell]] = [(manhattan(start, goal), 0, start)]
+    came_from: dict[State, State] = {}
+    seen: set[State] = {(start, 0)}
+
+    while open_heap:
+        _, steps, cell = heapq.heappop(open_heap)
+        tick = start_tick + steps
+        if cell == goal and reservations.is_free_from(goal, tick, robot_id):
+            path = _reconstruct(came_from, (cell, steps))
+            return [c for c, _ in path]
+        if steps >= max_steps:
+            continue
+        for nxt in [cell, *grid.neighbors(cell)]:  # first option: wait where we are
+            if nxt != cell and nxt in blocked:
+                continue
+            state = (nxt, steps + 1)
+            if state in seen or not reservations.can_move(cell, nxt, tick, robot_id):
+                continue
+            seen.add(state)
+            came_from[state] = (cell, steps)
+            heapq.heappush(open_heap, (steps + 1 + manhattan(nxt, goal), steps + 1, nxt))
+    return None
+
+
+def _reconstruct[T](came_from: dict[T, T], cell: T) -> list[T]:
     path = [cell]
     while cell in came_from:
         cell = came_from[cell]
