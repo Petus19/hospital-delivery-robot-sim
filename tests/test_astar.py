@@ -12,6 +12,7 @@ def assert_valid_path(grid, path, start, goal):
 
 def test_straight_line(small_grid):
     path = astar(small_grid, (1, 1), (7, 1))
+    assert path is not None
     assert_valid_path(small_grid, path, (1, 1), (7, 1))
     assert len(path) - 1 == 6
 
@@ -39,8 +40,10 @@ def test_goal_inside_wall_returns_none(small_grid):
 def test_blocked_cells_force_detour():
     grid = parse_grid("#######\n#.....#\n#.....#\n#######")
     direct = astar(grid, (1, 1), (5, 1))
+    assert direct is not None
     assert len(direct) - 1 == 4
     detour = astar(grid, (1, 1), (5, 1), blocked={(3, 1)})
+    assert detour is not None
     assert_valid_path(grid, detour, (1, 1), (5, 1))
     assert (3, 1) not in detour
     assert len(detour) - 1 == 6

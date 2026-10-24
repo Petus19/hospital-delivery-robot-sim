@@ -13,6 +13,8 @@ from collections.abc import Collection
 from hospital_sim.grid import Cell, Grid
 from hospital_sim.reservations import ReservationTable
 
+State = tuple[Cell, int]  # space-time search node: (cell, steps since start_tick)
+
 
 def manhattan(a: Cell, b: Cell) -> int:
     """Admissible heuristic for 4-connected moves: it never overestimates the true distance."""
@@ -87,7 +89,6 @@ def space_time_astar(
     if astar(grid, start, goal, [c for c in blocked if c != start]) is None:
         return None
 
-    State = tuple[Cell, int]  # (cell, steps since start_tick)
     open_heap: list[tuple[int, int, Cell]] = [(manhattan(start, goal), 0, start)]
     came_from: dict[State, State] = {}
     seen: set[State] = {(start, 0)}
