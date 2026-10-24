@@ -81,7 +81,7 @@ class Robot:
         self.goal = self.home
         self.needs_plan = True
 
-    def arrive(self, tick: int, service_ticks: int) -> None:
+    def arrive(self, service_ticks: int) -> None:
         """Called when the robot reaches the cell it was driving to."""
         if self.state == S.TO_PICKUP:
             self._set_state(S.LOADING)

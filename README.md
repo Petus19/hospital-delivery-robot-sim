@@ -320,7 +320,7 @@ Natural-language input, 14 English and Slovak sentences (10 valid requests,
 
 ## Testing and quality
 
-- **98 tests** (pytest), no display and no Ollama needed: A\* against BFS,
+- **97 tests** (pytest), no display and no Ollama needed: A\* against BFS,
   map validation, state machine, dispatcher, reservation table, cooperative A\*,
   collision invariants after every tick in full scenarios, deadlock recovery,
   blockages, metrics, determinism with seeds, the parsers (with a fake LLM and
