@@ -15,8 +15,8 @@ def test_small_map_locations(small_grid):
 def test_hospital_map_loads(hospital_grid):
     names = set(hospital_grid.locations)
     assert {"pharmacy", "lab", "kitchen", "charging"} <= names
-    assert {f"ward_{n}" for n in range(1, 7)} <= names
-    assert len(hospital_grid.locations["charging"]) == 4
+    assert {f"ward_{n}" for n in range(1, 10)} <= names
+    assert len(hospital_grid.locations["charging"]) == 6
 
 
 def test_neighbors_skip_walls(small_grid):
