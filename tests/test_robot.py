@@ -2,6 +2,7 @@ import pytest
 
 from hospital_sim.models import RobotState, Task, TaskStatus
 from hospital_sim.robot import InvalidTransition, Robot
+from hospital_sim.simulation import SimConfig, Simulation
 
 
 def make_task(**kwargs):
@@ -37,3 +38,32 @@ def test_illegal_transition_raises():
     robot.assign(make_task(), tick=0)
     with pytest.raises(InvalidTransition):
         robot.assign(make_task(id=2), tick=0)  # already busy
+
+
+def test_single_robot_delivers_task(small_grid):
+    robot = Robot(id=0, pos=(3, 1), home=(3, 1))
+    sim = Simulation(small_grid, [robot], [make_task()], SimConfig(load_ticks=2, unload_ticks=2))
+    sim.run(max_ticks=100)
+    task = sim.tasks[0]
+    assert task.status == TaskStatus.DELIVERED
+    # (3,1) -> pharmacy (1,1): 2 moves, load 2 ticks, -> ward_2 (7,3): 8 moves, unload 2 ticks.
+    assert task.picked_tick == 4
+    assert task.delivered_tick == 14
+    assert robot.state == RobotState.IDLE
+    assert robot.pos == robot.home
+    assert robot.distance == 2 + 8 + 6  # 6 moves back home
+
+
+def test_urgent_task_is_served_first(small_grid):
+    robot = Robot(id=0, pos=(3, 1), home=(3, 1))
+    normal = make_task(id=1)
+    urgent = make_task(id=2, dropoff="ward_1", priority="urgent")
+    sim = Simulation(small_grid, [robot], [normal, urgent])
+    sim.step()
+    assert robot.task is urgent
+
+
+def test_unknown_location_is_rejected(small_grid):
+    robot = Robot(id=0, pos=(3, 1), home=(3, 1))
+    with pytest.raises(ValueError, match="unknown location"):
+        Simulation(small_grid, [robot], [make_task(dropoff="ward_99")])
