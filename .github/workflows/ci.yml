@@ -24,5 +24,7 @@ jobs:
         run: ruff check .
       - name: Format check
         run: ruff format --check .
+      - name: Type check
+        run: pyright --pythonpath "$(which python)"
       - name: Tests
         run: pytest -q

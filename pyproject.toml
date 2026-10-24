@@ -20,6 +20,7 @@ dependencies = [
 dev = [
     "pytest>=8.4",
     "ruff>=0.14",
+    "pyright>=1.1.400",
 ]
 
 [project.scripts]
@@ -30,6 +31,14 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+# Use the project's virtual environment locally (CI passes --pythonpath instead).
+venvPath = "."
+venv = ".venv"
 
 [tool.ruff]
 line-length = 100
