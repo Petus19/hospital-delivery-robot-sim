@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments and secrets
+.venv/
+venv/
+.env
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Simulation output
+output/
+*.log
+
+# Editors / OS
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+.DS_Store

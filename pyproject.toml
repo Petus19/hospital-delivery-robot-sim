@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hospital-sim"
+version = "0.1.0"
+description = "Discrete-time simulator of a hospital delivery robot fleet: A*, dispatching and cooperative multi-robot path planning."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "pygame-ce>=2.5.6",
+    "pydantic>=2.12",
+    "pyyaml>=6.0.3",
+    "ollama>=0.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4",
+    "ruff>=0.14",
+]
+
+[project.scripts]
+hospital-sim = "hospital_sim.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/W/F: pycodestyle + pyflakes, I: import order, B: bugbear, UP: modern syntax,
+# SIM: simplifications, ANN: type hints required on every function.
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "ANN"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN"]
