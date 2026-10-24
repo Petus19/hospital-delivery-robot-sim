@@ -55,6 +55,31 @@ def test_starts_must_match_robot_count():
         Scenario.model_validate({"name": "x", "map": "m.txt", "robots": 2, "starts": [[1, 1]]})
 
 
+def test_blockage_must_end_after_start():
+    with pytest.raises(ValidationError, match="before it starts"):
+        Scenario.model_validate(
+            {
+                "name": "x",
+                "map": "m.txt",
+                "robots": 1,
+                "blockages": [{"cells": [[1, 4]], "start": 50, "end": 10}],
+            }
+        )
+
+
+def test_blockage_in_a_wall_is_rejected(hospital_grid):
+    scenario = Scenario.model_validate(
+        {
+            "name": "x",
+            "map": "m.txt",
+            "robots": 1,
+            "blockages": [{"cells": [[0, 0]], "start": 0, "end": 10}],
+        }
+    )
+    with pytest.raises(ValueError, match="wall"):
+        build_simulation(scenario, hospital_grid)
+
+
 def test_custom_start_cells(hospital_grid):
     scenario = Scenario(name="x", map="m.txt", robots=2, starts=[(1, 4), (2, 4)])
     sim = build_simulation(scenario, hospital_grid)

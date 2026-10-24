@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from hospital_sim.grid import Cell
+
 
 class Priority(StrEnum):
     NORMAL = "normal"
@@ -50,3 +52,16 @@ class Task:
     def delivery_time(self) -> int | None:
         """Ticks from creation to delivery (what a nurse actually experiences)."""
         return None if self.delivered_tick is None else self.delivered_tick - self.created_tick
+
+
+@dataclass(frozen=True)
+class BlockEvent:
+    """Cells closed from tick `start` (inclusive) to tick `end` (exclusive),
+    e.g. a corridor being cleaned or a bed parked in the way."""
+
+    cells: frozenset[Cell]
+    start: int
+    end: int
+
+    def is_active(self, tick: int) -> bool:
+        return self.start <= tick < self.end

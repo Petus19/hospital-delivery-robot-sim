@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 from hospital_sim.dispatcher import assign_tasks, queue_order
 from hospital_sim.grid import Cell, Grid
-from hospital_sim.models import Priority, RobotState, Task, TaskStatus
+from hospital_sim.models import BlockEvent, Priority, RobotState, Task, TaskStatus
 from hospital_sim.pathfinding import path_length, space_time_astar
 from hospital_sim.reservations import ReservationTable
 from hospital_sim.robot import Robot
@@ -41,10 +41,12 @@ class Simulation:
         robots: Iterable[Robot],
         tasks: Iterable[Task] = (),
         config: SimConfig | None = None,
+        events: Iterable[BlockEvent] = (),
     ) -> None:
         self.grid = grid
         self.robots = sorted(robots, key=lambda r: r.id)
         self.config = config or SimConfig()
+        self.events = list(events)
         self.tick = 0
         self.tasks: list[Task] = []  # every task released so far
         self.queue: list[Task] = []  # released but not yet assigned
@@ -307,6 +309,10 @@ class Simulation:
             seen.add(robot.pos)
         for task in self._scheduled:
             self._check_task(task)
+        for event in self.events:
+            for cell in event.cells:
+                if not self.grid.is_free(cell):
+                    raise ValueError(f"blockage cell {cell} is a wall or outside the map")
 
     def _check_task(self, task: Task) -> None:
         for name in (task.pickup, task.dropoff):
