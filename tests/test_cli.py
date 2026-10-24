@@ -1,5 +1,8 @@
 import json
 import logging
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from hospital_sim.__main__ import main
@@ -46,3 +49,15 @@ def test_run_with_extra_task_sentence(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "Added task #4: test kits, lab -> ward_9 (urgent) [understood by rules]" in out
     assert "Delivered: 4/4" in out
+
+
+def test_slovak_output_on_a_legacy_windows_console():
+    # cp1252 cannot encode "č"; the CLI must switch its output to UTF-8 itself.
+    env = os.environ | {"PYTHONIOENCODING": "cp1252"}
+    result = subprocess.run(
+        [sys.executable, "-m", "hospital_sim", "parse-task", "doruč čaj z kuchyne na oddelenie 2",
+         "--no-llm"],
+        capture_output=True, env=env, check=False,
+    )  # fmt: skip
+    assert result.returncode == 0, result.stderr.decode("utf-8", "replace")
+    assert '"item": "čaj"' in result.stdout.decode("utf-8")

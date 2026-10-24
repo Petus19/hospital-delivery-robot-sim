@@ -48,7 +48,7 @@ def test_request_uses_schema_and_deterministic_settings():
 
 def test_schema_limits_locations_to_the_map():
     schema = json_schema(LOCATIONS)
-    assert schema["properties"]["pickup"]["enum"] == LOCATIONS
+    assert schema["properties"]["pickup"]["enum"] == [*LOCATIONS, "unknown"]
     assert schema["properties"]["priority"]["enum"] == ["normal", "urgent"]
 
 
@@ -81,3 +81,17 @@ def test_real_client_without_server_returns_none():
     # Port 9 (discard) has no Ollama behind it: the connection fails fast.
     extractor = OllamaExtractor(host="http://127.0.0.1:9", timeout=2)
     assert extractor.extract("deliver insulin from pharmacy to ward 3", LOCATIONS) is None
+
+
+def test_unknown_answer_is_rejected():
+    # The model's way of saying "this is not a delivery between known places".
+    client = FakeClient(reply(pickup="unknown", dropoff="unknown", item="coffee"))
+    assert OllamaExtractor(client=client).extract("make me a coffee", LOCATIONS) is None
+
+
+def test_prompt_forbids_guessing_and_translating():
+    client = FakeClient(reply(pickup="pharmacy", dropoff="ward_3"))
+    OllamaExtractor(client=client).extract("text", LOCATIONS)
+    prompt = client.kwargs["messages"][0]["content"]
+    assert '"unknown"' in prompt
+    assert "do not translate" in prompt

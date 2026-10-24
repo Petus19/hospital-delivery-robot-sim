@@ -11,12 +11,15 @@ It finds location names, decides from the word in front of them ("from"/"z" vs.
 urgency words, and treats the remaining words as the item.
 """
 
+import logging
 import re
 import unicodedata
 from dataclasses import dataclass
 
 from hospital_sim.llm import TaskExtractor, TaskRequest, check_locations
 from hospital_sim.models import Priority
+
+log = logging.getLogger(__name__)
 
 # Word stems after lower-casing and removing diacritics (lekáreň -> lekaren).
 LOCATION_STEMS: dict[str, tuple[str, ...]] = {
@@ -25,6 +28,11 @@ LOCATION_STEMS: dict[str, tuple[str, ...]] = {
     "kitchen": ("kitchen", "kuchyn"),
 }
 WARD_WORDS = ("ward", "oddelen", "izb")  # ward, oddelenie/oddelenia, izba/izbu
+# Hospital slang: "na trojku" = to ward 3 (trojka, trojku, trojke, ...).
+WARD_NICKNAMES = {
+    "jednotk": 1, "dvojk": 2, "trojk": 3, "stvork": 4, "patk": 5,
+    "sestk": 6, "sedmick": 7, "osmick": 8, "deviatk": 9,
+}  # fmt: skip
 NUMBER_WORDS = {
     "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
     "six": 6, "seven": 7, "eight": 8, "nine": 9,
@@ -35,11 +43,12 @@ NUMBER_PREFIX = {"c", "cislo", "no", "number", "nr"}  # "oddelenie č. 3", "ward
 FROM_WORDS = {"from", "z", "zo", "od"}
 TO_WORDS = {"to", "into", "for", "na", "do", "pre", "k", "ku"}
 URGENT_STEMS = ("urgent", "asap", "stat", "emergenc", "immediate", "surn", "naliehav",
-                "okamzit", "ihned", "hned")  # fmt: skip
+                "okamzit", "ihned", "hned", "ponahl", "rychl")  # fmt: skip
 FILLER_WORDS = {
     "deliver", "bring", "take", "send", "carry", "fetch", "move", "please", "the", "a",
-    "an", "some", "it", "is", "doruc", "dones", "prines", "zober", "odvez", "posli",
-    "prosim", "presun", "treba", "je",
+    "an", "some", "it", "is", "need", "needs", "should", "go", "doruc", "dones", "prines",
+    "zober", "odvez", "posli", "prosim", "presun", "treba", "je", "potrebujeme",
+    "potrebuje", "sa",
 }  # fmt: skip
 
 
@@ -50,11 +59,18 @@ class ParseResult:
 
 
 def parse_task(text: str, locations: list[str], llm: TaskExtractor | None = None) -> ParseResult:
-    """Parse a sentence into a validated request. Raises ValueError if nothing understood it."""
+    """Parse a sentence into a validated request. Raises ValueError if nothing understood it.
+
+    The LLM's answer is only accepted if both of its locations are actually named in
+    the sentence. A small model tends to guess (e.g. "ward 12" -> ward_1, "make me a
+    coffee" -> kitchen), so the LLM proposes and this deterministic check decides.
+    """
     if llm is not None:
         request = llm.extract(text, locations)
         if request is not None:
-            return ParseResult(request, "llm")
+            if {request.pickup, request.dropoff} <= mentioned_locations(text):
+                return ParseResult(request, "llm")
+            log.info("LLM answer names a location that is not in the sentence, ignoring it")
     request = RuleBasedExtractor().extract(text, locations)
     if request is None:
         raise ValueError(
@@ -62,6 +78,19 @@ def parse_task(text: str, locations: list[str], llm: TaskExtractor | None = None
             "e.g. 'deliver insulin from the pharmacy to ward 3'."
         )
     return ParseResult(request, "rules")
+
+
+def mentioned_locations(text: str) -> set[str]:
+    """Every location the sentence names, whether or not it exists on the map."""
+    norm = [_normalize(w) for w in re.findall(r"\w+", text)]
+    found: set[str] = set()
+    i = 0
+    while i < len(norm):
+        name, length = _location_at(norm, i)
+        if name is not None:
+            found.add(name)
+        i += length
+    return found
 
 
 class RuleBasedExtractor:
@@ -135,6 +164,9 @@ def _location_at(norm: list[str], i: int) -> tuple[str | None, int]:
     for name, stems in LOCATION_STEMS.items():
         if word.startswith(stems):
             return name, 1
+    for stem, number in WARD_NICKNAMES.items():
+        if word.startswith(stem):
+            return f"ward_{number}", 1
     return None, 1
 
 
