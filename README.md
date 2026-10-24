@@ -11,7 +11,7 @@ multi-robot collision avoidance in narrow corridors, reacting to blocked
 corridors, measuring fleet performance, and letting staff create tasks in
 plain English or Slovak through a **local** language model.
 
-<!-- GIF of the simulation: docs/demo.gif -->
+![Six robots in the rush-hour scenario: planned paths, urgent tasks in red, robots waiting for each other at doors](docs/demo.gif)
 
 ## Why
 
