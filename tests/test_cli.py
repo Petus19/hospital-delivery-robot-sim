@@ -22,3 +22,27 @@ def test_headless_run_writes_results(tmp_path, capsys):
     assert summary["tasks_delivered"] == summary["tasks_total"] == 10
     assert "delivered by robot" in (out_dir / "sim.log").read_text(encoding="utf-8")
     assert "Delivered: 10/10" in capsys.readouterr().out
+
+
+def test_parse_task_command_without_llm(capsys):
+    code = main(["parse-task", "doruč inzulín z lekárne na oddelenie 3, súrne", "--no-llm"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert '"dropoff": "ward_3"' in out
+    assert '"priority": "urgent"' in out
+    assert "understood by rules" in out
+
+
+def test_parse_task_command_reports_failure(capsys):
+    assert main(["parse-task", "make me a coffee", "--no-llm"]) == 1
+    assert "Could not understand" in capsys.readouterr().out
+
+
+def test_run_with_extra_task_sentence(tmp_path, capsys):
+    args = ["run", str(SCENARIOS / "single_robot.yaml"), "--headless", "-q", "--no-llm"]
+    args += ["--out", str(tmp_path), "--task", "bring test kits from the lab to ward 9, urgent"]
+    assert main(args) == 0
+    logging.shutdown()
+    out = capsys.readouterr().out
+    assert "Added task #4: test kits, lab -> ward_9 (urgent) [understood by rules]" in out
+    assert "Delivered: 4/4" in out

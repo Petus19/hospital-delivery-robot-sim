@@ -28,3 +28,19 @@ def test_viewer_draws_frames(hospital_grid):
         sim.step()
         viewer._draw()
     assert viewer.screen.get_width() > 0
+
+
+def test_typed_sentence_is_sent_to_callback(hospital_grid):
+    import pygame
+
+    from hospital_sim.viz import Viewer
+
+    home = hospital_grid.locations["charging"][0]
+    sim = Simulation(hospital_grid, [Robot(id=0, pos=home, home=home)])
+    received = []
+    viewer = Viewer(sim, max_ticks=10, on_text=lambda text: received.append(text) or "ok")
+    viewer.typing = "deliver insulin from pharmacy to ward 3"
+    viewer._handle_typing(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RETURN))
+    assert received == ["deliver insulin from pharmacy to ward 3"]
+    assert viewer.message == "ok"
+    assert viewer.typing is None
