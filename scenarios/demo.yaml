@@ -1,0 +1,16 @@
+# Four robots and a morning medication round.
+name: demo
+map: ../maps/hospital.txt
+robots: 4
+max_ticks: 600
+tasks:
+  - {tick: 0, pickup: pharmacy, dropoff: ward_1, item: insulin}
+  - {tick: 0, pickup: pharmacy, dropoff: ward_4, item: antibiotics}
+  - {tick: 0, pickup: lab, dropoff: ward_7, item: blood test results}
+  - {tick: 2, pickup: kitchen, dropoff: ward_9, item: breakfast trays}
+  - {tick: 5, pickup: pharmacy, dropoff: ward_8, item: morphine, priority: urgent}
+  - {tick: 10, pickup: ward_3, dropoff: lab, item: blood samples}
+  - {tick: 15, pickup: kitchen, dropoff: ward_2, item: breakfast trays}
+  - {tick: 20, pickup: pharmacy, dropoff: ward_6, item: heparin, priority: urgent}
+  - {tick: 30, pickup: ward_5, dropoff: lab, item: urine samples}
+  - {tick: 40, pickup: pharmacy, dropoff: ward_3, item: paracetamol}

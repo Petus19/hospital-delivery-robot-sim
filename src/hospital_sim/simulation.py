@@ -8,6 +8,7 @@ import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from hospital_sim.dispatcher import assign_tasks, queue_order
 from hospital_sim.grid import Cell, Grid
 from hospital_sim.models import Priority, RobotState, Task, TaskStatus
 from hospital_sim.pathfinding import astar, path_length
@@ -85,16 +86,11 @@ class Simulation:
             log.info("t=%d task %d created: %s", self.tick, task.id, _describe(task))
 
     def _dispatch(self) -> None:
-        """Naive first version: urgent first, then oldest; give it to the first free robot."""
-        self.queue.sort(key=_queue_order)
-        for task in list(self.queue):
-            free = [r for r in self.robots if r.is_available]
-            if not free:
-                return
-            robot = free[0]
+        for task, robot in assign_tasks(self.queue, self.robots, self.grid, self.blocked):
             robot.assign(task, self.tick)
             self.queue.remove(task)
             log.info("t=%d task %d -> robot %d", self.tick, task.id, robot.id)
+        self.queue.sort(key=queue_order)
 
     def _plan_paths(self) -> None:
         for robot in self.robots:
@@ -183,10 +179,6 @@ class Simulation:
         for name in (task.pickup, task.dropoff):
             if name not in self.grid.locations:
                 raise ValueError(f"task {task.id}: unknown location {name!r}")
-
-
-def _queue_order(task: Task) -> tuple[int, int, int]:
-    return (0 if task.priority == Priority.URGENT else 1, task.created_tick, task.id)
 
 
 def _describe(task: Task) -> str:
