@@ -156,7 +156,7 @@ Typos and unknown locations are rejected when the file is loaded.
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph inputs[Inputs]
         YAML[scenario.yaml] --> SC[scenario.py<br/>pydantic + seeded generator]
         MAP[maps/*.txt] --> GRID[grid.py<br/>map + validation]
