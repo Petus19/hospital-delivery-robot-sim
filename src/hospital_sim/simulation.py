@@ -232,7 +232,7 @@ class Simulation:
                     if robot.state == RobotState.TO_PICKUP
                     else self.config.unload_ticks
                 )
-                robot.arrive(now, service)
+                robot.arrive(service)
             self._check_stuck(robot, now)
 
     # ------------------------------------------------------------------ helpers
