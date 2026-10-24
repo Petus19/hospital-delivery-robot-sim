@@ -78,6 +78,7 @@ class Scenario(BaseModel):
     load_ticks: int = Field(default=3, ge=1)
     unload_ticks: int = Field(default=3, ge=1)
     stuck_timeout: int = Field(default=12, ge=1)
+    dock_timeout: int = Field(default=3, ge=1)
     tasks: list[TaskSpec] = []
     generator: GeneratorSpec | None = None
     blockages: list[BlockageSpec] = []
@@ -113,6 +114,7 @@ def build_simulation(scenario: Scenario, grid: Grid, seed: int | None = None) ->
         load_ticks=scenario.load_ticks,
         unload_ticks=scenario.unload_ticks,
         stuck_timeout=scenario.stuck_timeout,
+        dock_timeout=scenario.dock_timeout,
     )
     events = [BlockEvent(frozenset(b.cells), b.start, b.end) for b in scenario.blockages]
     return Simulation(grid, robots, tasks, config, events)
