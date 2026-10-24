@@ -221,7 +221,9 @@ class Viewer:
             y = self._text("(empty)", x0, y, color=DIM_TEXT)
 
         if self.message:
-            y = self._text(self.message, x0, y + 10, color=(120, 200, 255))
+            y += 10
+            for line in self._wrap(self.message, PANEL_WIDTH - 28):
+                y = self._text(line, x0, y, color=(120, 200, 255))
         help_lines = ["SPACE pause   N step   UP/DOWN speed   ESC quit"]
         if self.on_text is not None:
             help_lines.append("T  type a task in plain English / Slovak")
@@ -237,6 +239,17 @@ class Viewer:
         prompt = "New task (Enter to send, Esc to cancel):"
         self._text(prompt, box.x + 10, box.y + 6, self.small, DIM_TEXT)
         self._text((self.typing or "") + "_", box.x + 10, box.y + 26, self.big)
+
+    def _wrap(self, text: str, width: int) -> list[str]:
+        """Split text into lines that fit into `width` pixels (word wrap)."""
+        lines: list[str] = []
+        for word in text.split():
+            candidate = f"{lines[-1]} {word}" if lines else word
+            if lines and self.font.size(candidate)[0] <= width:
+                lines[-1] = candidate
+            else:
+                lines.append(word)
+        return lines
 
     def _text(
         self,
