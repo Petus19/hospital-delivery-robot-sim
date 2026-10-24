@@ -30,7 +30,12 @@ def _run(args: argparse.Namespace) -> int:
     scenario, grid = load_scenario(args.scenario)
     sim = build_simulation(scenario, grid)
     max_ticks = args.ticks or scenario.max_ticks
-    sim.run(max_ticks)
+    if args.headless:
+        sim.run(max_ticks)
+    else:
+        from hospital_sim.viz import Viewer  # imported lazily: headless runs never need pygame
+
+        Viewer(sim, max_ticks, title=f"Hospital delivery robots - {scenario.name}").run()
     delivered = sum(t.delivered_tick is not None for t in sim.tasks)
     print(f"\nScenario '{scenario.name}': {sim.tick} ticks, {delivered}/{len(sim.tasks)} delivered")
     return 0
