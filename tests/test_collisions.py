@@ -28,7 +28,7 @@ def run_checked(sim: Simulation, max_ticks: int) -> None:
                     assert not swapped, f"robots {a.id} and {b.id} swapped at tick {sim.tick}"
 
 
-@pytest.mark.parametrize("name", ["demo", "rush_hour"])
+@pytest.mark.parametrize("name", ["demo", "rush_hour", "blocked_corridor"])
 def test_scenarios_have_no_collisions(name):
     scenario, grid = load_scenario(SCENARIOS / f"{name}.yaml")
     sim = build_simulation(scenario, grid)

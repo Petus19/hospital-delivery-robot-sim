@@ -72,6 +72,7 @@ def summary(sim: Simulation) -> dict[str, Any]:
         "collision_waits": sum(r["planned_waits"] + r["safety_stops"] for r in robots),
         "safety_stops": sum(r["safety_stops"] for r in robots),
         "deadlock_recoveries": sum(r["deadlock_recoveries"] for r in robots),
+        "blockage_replans": sim.blockage_replans,
         "avg_utilization": _avg([r["utilization"] for r in robots]),
     }
 
@@ -100,7 +101,8 @@ def format_summary(sim: Simulation) -> str:
         f"normal {_fmt(s['avg_delivery_time_normal'])}   max {_fmt(s['max_delivery_time'])}",
         f"Avg queue time: {_fmt(s['avg_queue_time'])}   "
         f"Collision waits: {s['collision_waits']}   Safety stops: {s['safety_stops']}   "
-        f"Deadlock recoveries: {s['deadlock_recoveries']}",
+        f"Deadlock recoveries: {s['deadlock_recoveries']}   "
+        f"Blockage replans: {s['blockage_replans']}",
         "",
         f"{'robot':>5} {'distance':>9} {'busy':>6} {'util':>6} {'waits':>6} {'stops':>6}",
     ]

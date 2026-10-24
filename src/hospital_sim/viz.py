@@ -198,6 +198,11 @@ class Viewer:
         y = self._text(f"Tick {self.sim.tick}   {status}", x0, y, self.big)
         delivered = sum(t.status == TaskStatus.DELIVERED for t in self.sim.tasks)
         y = self._text(f"Delivered {delivered}/{len(self.sim.tasks)}", x0, y + 4)
+        active = [e for e in self.sim.events if e.is_active(self.sim.tick)]
+        if active:
+            until = max(e.end for e in active)
+            closed = f"Closed: {len(self.sim.blocked)} cell(s) until tick {until}"
+            y = self._text(closed, x0, y, color=URGENT)
 
         y = self._text("Robots", x0, y + 10, self.big)
         for robot in self.sim.robots:
