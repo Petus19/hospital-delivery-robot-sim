@@ -3,7 +3,7 @@
 The viewer only *reads* simulation state and calls `sim.step()`; it never changes
 robots or tasks directly. Delete this file and the simulator still works headless.
 
-Keys: SPACE pause | N single step | UP/DOWN speed | ESC quit
+Keys: SPACE pause | N single step | UP/DOWN speed | T type a task | ESC quit
 """
 
 from collections.abc import Callable
@@ -165,7 +165,7 @@ class Viewer:
             color = LOCATION_COLORS.get(name, WARD_COLOR)
             for cell in cells:
                 pygame.draw.rect(self.screen, color, self._rect(cell).inflate(-2, -2))
-            # Label above the first dock cell.
+            # Name in the corner of the first dock cell.
             label = self.small.render(name.replace("_", " "), True, (30, 30, 30))
             x, y = cells[0]
             self.screen.blit(label, (x * CELL + 2, y * CELL + 2))

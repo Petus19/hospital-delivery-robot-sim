@@ -2,7 +2,7 @@
 
 Everything here only reads the simulation. Output:
     tasks.csv     one row per task (times in ticks)
-    robots.csv    one row per robot (distance, waits, utilisation)
+    robots.csv    one row per robot (distance, waits, utilization)
     summary.json  fleet-level numbers for a quick comparison between runs
 """
 

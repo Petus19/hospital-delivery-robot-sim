@@ -1,10 +1,16 @@
 """A single delivery robot and its state machine.
 
-    IDLE ──assign──> TO_PICKUP ──arrive──> LOADING ──done──> TO_DROPOFF
-      ^                  ^                                       │
-      │                  └────────assign────────┐              arrive
-      │                                         │                v
-      └─────arrive home──── RETURNING <──done── UNLOADING <──────┘
+Allowed transitions (enforced by TRANSITIONS below):
+
+    IDLE        -> TO_PICKUP    a task is assigned
+    IDLE        -> RETURNING    the robot is not at its charger
+    TO_PICKUP   -> LOADING      arrived at the pickup dock
+    LOADING     -> TO_DROPOFF   loading finished
+    TO_DROPOFF  -> UNLOADING    arrived at the dropoff dock
+    UNLOADING   -> RETURNING    delivered, drive back to the charger
+    UNLOADING   -> IDLE         delivered while already at the charger
+    RETURNING   -> IDLE         arrived at the charger
+    RETURNING   -> TO_PICKUP    a new task is assigned on the way back
 
 The robot only stores state and enforces legal transitions. Decisions (which task,
 which path) are made by the simulation, so this class stays small and testable.
