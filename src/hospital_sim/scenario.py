@@ -16,7 +16,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from hospital_sim.grid import Cell, Grid, load_grid
-from hospital_sim.models import Priority, Task
+from hospital_sim.models import BlockEvent, Priority, Task
 from hospital_sim.robot import Robot
 from hospital_sim.simulation import SimConfig, Simulation
 
@@ -50,6 +50,22 @@ class GeneratorSpec(BaseModel):
     wards: list[str] | None = None  # default: every ward on the map
 
 
+class BlockageSpec(BaseModel):
+    """Cells closed for a while, e.g. a corridor being cleaned."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    cells: list[tuple[int, int]] = Field(min_length=1)
+    start: int = Field(ge=0)
+    end: int
+
+    @model_validator(mode="after")
+    def _end_after_start(self) -> Self:
+        if self.end <= self.start:
+            raise ValueError(f"blockage ends ({self.end}) before it starts ({self.start})")
+        return self
+
+
 class Scenario(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -64,6 +80,7 @@ class Scenario(BaseModel):
     stuck_timeout: int = Field(default=12, ge=1)
     tasks: list[TaskSpec] = []
     generator: GeneratorSpec | None = None
+    blockages: list[BlockageSpec] = []
 
     @model_validator(mode="after")
     def _starts_match_robots(self) -> Self:
@@ -97,7 +114,8 @@ def build_simulation(scenario: Scenario, grid: Grid, seed: int | None = None) ->
         unload_ticks=scenario.unload_ticks,
         stuck_timeout=scenario.stuck_timeout,
     )
-    return Simulation(grid, robots, tasks, config)
+    events = [BlockEvent(frozenset(b.cells), b.start, b.end) for b in scenario.blockages]
+    return Simulation(grid, robots, tasks, config, events)
 
 
 def generate_tasks(

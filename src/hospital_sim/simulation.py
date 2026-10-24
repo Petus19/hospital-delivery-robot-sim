@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 from hospital_sim.dispatcher import assign_tasks, queue_order
 from hospital_sim.grid import Cell, Grid
-from hospital_sim.models import Priority, RobotState, Task, TaskStatus
+from hospital_sim.models import BlockEvent, Priority, RobotState, Task, TaskStatus
 from hospital_sim.pathfinding import path_length, space_time_astar
 from hospital_sim.reservations import ReservationTable
 from hospital_sim.robot import Robot
@@ -41,15 +41,18 @@ class Simulation:
         robots: Iterable[Robot],
         tasks: Iterable[Task] = (),
         config: SimConfig | None = None,
+        events: Iterable[BlockEvent] = (),
     ) -> None:
         self.grid = grid
         self.robots = sorted(robots, key=lambda r: r.id)
         self.config = config or SimConfig()
+        self.events = list(events)
         self.tick = 0
         self.tasks: list[Task] = []  # every task released so far
         self.queue: list[Task] = []  # released but not yet assigned
         self.blocked: set[Cell] = set()  # cells closed right now (e.g. cleaning a corridor)
         self.reservations = ReservationTable()
+        self.blockage_replans = 0  # how often a closed corridor forced a robot to replan
         self._stopped: set[int] = set()  # robots halted by the safety check this tick
         self._scheduled = sorted(tasks, key=lambda t: (t.created_tick, t.id))
         self._next_task_id = max((t.id for t in self._scheduled), default=0) + 1
@@ -84,6 +87,7 @@ class Simulation:
             self.step()
 
     def step(self) -> None:
+        self._apply_events()
         self._release_tasks()
         self._dispatch()
         self._plan_paths()
@@ -92,6 +96,34 @@ class Simulation:
         self.tick += 1
 
     # ------------------------------------------------------------------ tick phases
+
+    def _apply_events(self) -> None:
+        """Close and reopen cells according to the blockage events.
+
+        A robot whose remaining path crosses a newly closed cell replans now.
+        When cells reopen, every driving robot replans, since a shorter way may be
+        free again. The robots learn about a blockage only when it starts, like
+        real robots that see it on arrival rather than from a schedule.
+        """
+        blocked: set[Cell] = set()
+        for event in self.events:
+            if event.is_active(self.tick):
+                blocked |= event.cells
+        if blocked == self.blocked:
+            return
+        closed, opened = blocked - self.blocked, self.blocked - blocked
+        self.blocked = blocked
+        if closed:
+            log.warning("t=%d %d cell(s) closed: %s", self.tick, len(closed), sorted(closed))
+        if opened:
+            log.info("t=%d %d cell(s) open again", self.tick, len(opened))
+        for robot in self.robots:
+            if closed and any(cell in closed for cell in robot.path):
+                robot.needs_plan = True
+                self.blockage_replans += 1
+                log.info("t=%d robot %d replans around the blockage", self.tick, robot.id)
+            elif opened and robot.is_driving:
+                robot.needs_plan = True
 
     def _release_tasks(self) -> None:
         while self._scheduled and self._scheduled[0].created_tick <= self.tick:
@@ -206,6 +238,8 @@ class Simulation:
     # ------------------------------------------------------------------ helpers
 
     def _is_safe_move(self, robot: Robot, target: Cell, final: dict[int, Cell]) -> bool:
+        if target in self.blocked:
+            return False  # never drive into a closed cell, even with an outdated plan
         for other in self.robots:
             if other is robot:
                 continue
@@ -307,6 +341,10 @@ class Simulation:
             seen.add(robot.pos)
         for task in self._scheduled:
             self._check_task(task)
+        for event in self.events:
+            for cell in event.cells:
+                if not self.grid.is_free(cell):
+                    raise ValueError(f"blockage cell {cell} is a wall or outside the map")
 
     def _check_task(self, task: Task) -> None:
         for name in (task.pickup, task.dropoff):

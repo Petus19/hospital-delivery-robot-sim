@@ -1,0 +1,20 @@
+# The upper corridor is closed for cleaning from tick 15 to 150, cutting the
+# hospital in half. Robots must detour through the lower corridor, then switch
+# back to the short route when it reopens.
+name: blocked_corridor
+map: ../maps/hospital.txt
+robots: 4
+seed: 3
+max_ticks: 800
+tasks:
+  - {tick: 0, pickup: pharmacy, dropoff: ward_5, item: insulin}
+  - {tick: 0, pickup: lab, dropoff: ward_1, item: test kits}
+  - {tick: 5, pickup: pharmacy, dropoff: ward_4, item: morphine, priority: urgent}
+  - {tick: 10, pickup: kitchen, dropoff: ward_2, item: meal trays}
+generator:
+  rate: 0.035
+  until_tick: 300
+blockages:
+  - cells: [[18, 4], [18, 5]]   # both lanes of the upper corridor
+    start: 15
+    end: 150
