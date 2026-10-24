@@ -13,6 +13,7 @@ Ollama is not running; --no-llm skips the LLM.
 """
 
 import argparse
+import io
 import logging
 import sys
 from collections.abc import Callable
@@ -29,6 +30,7 @@ DEFAULT_MAP = "maps/hospital.txt"  # relative to the project folder
 
 
 def main(argv: list[str] | None = None) -> int:
+    _use_utf8_output()
     parser = argparse.ArgumentParser(
         prog="hospital_sim", description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
@@ -127,6 +129,13 @@ def _parse_task(args: argparse.Namespace) -> int:
 def task_locations(grid: Grid) -> list[str]:
     """Places a task may start or end at: every location except the chargers."""
     return sorted(name for name in grid.locations if name != "charging")
+
+
+def _use_utf8_output() -> None:
+    """Older Windows consoles use cp1252, which cannot print Slovak letters like 'č'."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
 
 
 def _setup_logging(log_file: Path, quiet: bool) -> None:
