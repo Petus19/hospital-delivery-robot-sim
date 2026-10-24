@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Discrete-time simulator of a hospital delivery robot fleet: A*, dispatching and cooperative multi-robot path planning."
 readme = "README.md"
 license = "MIT"
+authors = [{ name = "Peter Dubjak" }]
 requires-python = ">=3.12"
 dependencies = [
     "pygame-ce>=2.5.6",
@@ -15,6 +16,9 @@ dependencies = [
     "pyyaml>=6.0.3",
     "ollama>=0.6",
 ]
+
+[project.urls]
+Repository = "https://github.com/Petus19/hospital-delivery-robot-sim"
 
 [project.optional-dependencies]
 dev = [
